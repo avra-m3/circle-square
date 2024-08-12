@@ -34,7 +34,7 @@ export default function Home() {
     }
 
     useEffect(() => {
-        const handleKeyboard = (event: KeyboardEvent) => canvas?.setupKeyboardEvents(event.key, event);
+        const handleKeyboard = (event: KeyboardEvent) => canvas?.setupKeyboardEvents(event.key);
         window.addEventListener("keydown", handleKeyboard);
         return () => {
             window.removeEventListener("keydown", handleKeyboard.bind(canvas));
@@ -42,7 +42,7 @@ export default function Home() {
     }, [canvas]);
 
     useEffect(() => {
-        canvas?.on('mouse:wheel', (event) => {
+        canvas?.on('mouse:wheel', () => {
             setZoom(canvas?.getZoom())
         })
     }, [canvas])
