@@ -16,17 +16,15 @@ export const connect = () => {
     return getDatabase(app)
 }
 
-const db = connect();
-
 
 export const getAllObjects = async () => {
-    const dataRef = ref(db, 'objects');
+    const dataRef = ref(connect(), 'objects');
     const snapshot = await get(dataRef);
     return snapshot.val();
 }
 
 export const listenForUpdates = (callback: (type: 'add' | 'update' | 'delete', key: string, value: unknown) => void) => {
-    const dataRef = ref(db, 'objects');
+    const dataRef = ref(connect(), 'objects');
     onChildAdded(dataRef, (snapshot) => {
         const data = snapshot.val();
         callback('add', snapshot.key as string, data);
@@ -43,7 +41,7 @@ export const listenForUpdates = (callback: (type: 'add' | 'update' | 'delete', k
 
 export const updateShapeInDb = async (elem: CustomCircle | CustomRect) => {
     const rep = elem.toDbRep();
-    await update(ref(db, 'objects/' + elem.get('id')), rep);
+    await update(ref(connect(), 'objects/' + elem.get('id')), rep);
 }
 
 export const writeNewShapeToDb = async (elem: CustomCircle | CustomRect) => {
@@ -52,11 +50,11 @@ export const writeNewShapeToDb = async (elem: CustomCircle | CustomRect) => {
         return;
     }
     const rep = elem.toDbRep();
-    await set(ref(db, 'objects/' + elem.get('id')), rep);
+    await set(ref(connect(), 'objects/' + elem.get('id')), rep);
 }
 
 export const deleteShapeFromDb = async (elem: CustomCircle | CustomRect) => {
     if (elem.get('id')) {
-        await remove(ref(db, 'objects/' + elem.get('id')));
+        await remove(ref(connect(), 'objects/' + elem.get('id')));
     }
 }

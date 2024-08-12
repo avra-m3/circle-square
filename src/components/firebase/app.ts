@@ -1,10 +1,10 @@
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth } from '@firebase/auth';
+import { FirebaseApp, initializeApp } from "firebase/app";
+import { Analytics, getAnalytics } from "firebase/analytics";
+import { Auth, getAuth } from '@firebase/auth';
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBj43GDGJRnYg8TAKoP8r63KBWGOc1D5Kk",
+    apiKey: process.env.apiKey,
     authDomain: "circle-square-7c212.firebaseapp.com",
     databaseURL: "https://circle-square-7c212-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "circle-square-7c212",
@@ -14,7 +14,9 @@ const firebaseConfig = {
     measurementId: "G-Z19NLCWTSN"
 };
 
+
+const isSSR = typeof window === 'undefined'
 // Initialize Firebase
-export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
-export const auth = getAuth(app);
+export const app = (isSSR ? null : initializeApp(firebaseConfig)) as FirebaseApp;
+export const analytics = (isSSR ? null : getAnalytics(app)) as Analytics;
+export const auth = (isSSR ? null : getAuth(app)) as Auth;
