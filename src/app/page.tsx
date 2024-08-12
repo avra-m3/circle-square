@@ -6,17 +6,11 @@ import { useEffect, useState } from 'react';
 import { CustomCanvas } from '@/components/canvas/CustomCanvas';
 import {
     deleteShapeFromDb,
-    getAllObjects,
     listenForUpdates,
     updateShapeInDb,
     writeNewShapeToDb
 } from '@/components/firebase/database';
 import { CustomCircle } from '@/components/canvas/Shapes';
-import firebase from "firebase/compat/app";
-import { auth } from "firebaseui";
-import { app } from '@/components/firebase/app';
-import { getAuth } from '@firebase/auth';
-
 
 export default function Home() {
     const [canvas, setCanvas] = useState<CustomCanvas | null>(null)
@@ -24,7 +18,6 @@ export default function Home() {
 
     const setupCanvas = async (canvas: CustomCanvas) => {
         setCanvas(canvas)
-        // canvas.addOrUpdateFromDb(await getAllObjects())
         canvas.on('object:added', ({ target }) => writeNewShapeToDb(target as CustomCircle))
         canvas.on('object:modified', ({ target, }) => updateShapeInDb(target as CustomCircle))
         canvas.on('object:removed', ({ target }) => deleteShapeFromDb(target as CustomCircle))
@@ -36,8 +29,6 @@ export default function Home() {
                 return;
             }
             canvas.addOrUpdateFromDb({ [id]: data })
-
-
         })
     }
 
