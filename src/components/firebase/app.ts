@@ -1,4 +1,4 @@
-import { FirebaseApp, initializeApp } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { Analytics, getAnalytics } from "firebase/analytics";
 import { Auth, getAuth } from '@firebase/auth';
 
@@ -17,6 +17,6 @@ const firebaseConfig = {
 
 const isSSR = typeof window === 'undefined'
 // Initialize Firebase
-export const app = (isSSR ? null : initializeApp(firebaseConfig)) as FirebaseApp;
+export const app = initializeApp(firebaseConfig);
 export const analytics = (isSSR ? null : getAnalytics(app)) as Analytics;
 export const auth = (isSSR ? null : getAuth(app)) as Auth;

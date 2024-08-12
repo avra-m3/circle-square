@@ -7,7 +7,8 @@ import {
     ref,
     remove,
     set,
-    update
+    update,
+    goOffline
 } from '@firebase/database';
 import { CustomCircle, CustomRect } from '@/components/canvas/Shapes';
 import { app } from '@/components/firebase/app';
@@ -16,6 +17,9 @@ export const connect = () => {
     return getDatabase(app)
 }
 
+export const disconnect = () => {
+    goOffline(connect());
+}
 
 export const getAllObjects = async () => {
     const dataRef = ref(connect(), 'objects');
