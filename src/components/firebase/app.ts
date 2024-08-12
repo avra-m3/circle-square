@@ -4,7 +4,7 @@ import { Auth, getAuth } from '@firebase/auth';
 
 
 const firebaseConfig = {
-    apiKey: process.env.apiKey,
+    apiKey: process.env.API_KEY,
     authDomain: "circle-square-7c212.firebaseapp.com",
     databaseURL: "https://circle-square-7c212-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "circle-square-7c212",
