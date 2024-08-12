@@ -29,11 +29,11 @@ export class CustomCanvas extends Canvas {
     }
 
     addOrUpdateFromDb(obj: Record<string, unknown>) {
-        if(!obj){
+        if (!obj) {
             return;
         }
         for (const id in obj) {
-            const { type, ...representation } = obj[id] as Partial<CircleProps | RectProps> & {type: string};
+            const { type, ...representation } = obj[id] as Partial<CircleProps | RectProps> & { type: string };
             const liveVersion = this._objectsById[id];
             if (type === "Circle") {
                 if (liveVersion) {
@@ -41,7 +41,7 @@ export class CustomCanvas extends Canvas {
                     this.requestRenderAll();
                 } else {
                     this.add(
-                        new CustomCircle({ ...(representation) as Partial<RectProps>, id, loaded: true } )
+                        new CustomCircle({ ...(representation) as Partial<RectProps>, id, loaded: true })
                     );
                 }
             } else if (type === "Rect") {
@@ -50,12 +50,13 @@ export class CustomCanvas extends Canvas {
                     this.requestRenderAll();
                 } else {
                     this.add(
-                        new CustomRect({ ...(representation) as Partial<RectProps>, id, loaded: true  } )
+                        new CustomRect({ ...(representation) as Partial<RectProps>, id, loaded: true })
                     );
                 }
             }
         }
     }
+
     add(...objects: (FabricObject)[]) {
         for (const obj of objects) {
             this._objectsById[obj.get('id')] = obj;
@@ -83,16 +84,16 @@ export class CustomCanvas extends Canvas {
     }
 
     getRandomBounds({ width, height }: { width: number, height: number }) {
-        const {tl, br} = this.calcViewportBoundaries();
-        const left = tl.x + (Math.random() *  (br.x - tl.x)) - width / 2
-        const top =tl.y + (Math.random() *  (br.y - tl.y)) - height / 2
+        const { tl, br } = this.calcViewportBoundaries();
+        const left = tl.x + (Math.random() * (br.x - tl.x)) - width / 2
+        const top = tl.y + (Math.random() * (br.y - tl.y)) - height / 2
         return {
             left,
             top,
         }
     }
 
-    setupKeyboardEvents(key: string, event: KeyboardEvent) {
+    setupKeyboardEvents(key: string) {
         if (key === "c") {
             this.addCircle({});
         } else if (key === "s") {
@@ -124,25 +125,33 @@ export class CustomCanvas extends Canvas {
     onZoom(opt: TPointerEventInfo<WheelEvent>) {
         let { deltaX, deltaY } = opt.e;
 
-        const [zoomX, _, __, ___, offX, offY] = this.viewportTransform;
+        if (opt.e.ctrlKey) {
+            const [zoomX] = this.viewportTransform;
 
 
-        let targetZoom = zoomX * Math.pow(.99, deltaY);
-        if (targetZoom < 0.01) targetZoom = .01;
-        if (targetZoom > 10) targetZoom = 10;
+            let targetZoom = zoomX * Math.pow(.99, deltaY);
+            if (targetZoom < 0.01) targetZoom = .01;
+            if (targetZoom > 10) targetZoom = 10;
 
 
-        const point = new Point(opt.e.offsetX, opt.e.offsetY);
-        const before = point,
-            vpt: TMat2D = [...this.viewportTransform];
-        const newPoint = point.transform(util.invertTransform(vpt));
-        vpt[0] = targetZoom;
-        vpt[3] = targetZoom;
-        const after = newPoint.transform(vpt);
-        vpt[4] += before.x - after.x;
-        vpt[5] += before.y - after.y;
-        this.setViewportTransform(vpt);
-        log('zoom')
+            const point = new Point(opt.e.offsetX, opt.e.offsetY);
+            const before = point,
+                vpt: TMat2D = [...this.viewportTransform];
+            const newPoint = point.transform(util.invertTransform(vpt));
+            vpt[0] = targetZoom;
+            vpt[3] = targetZoom;
+            const after = newPoint.transform(vpt);
+            vpt[4] += before.x - after.x;
+            vpt[5] += before.y - after.y;
+            this.setViewportTransform(vpt);
+            log('zoom')
+        } else {
+            const movement = new Point(deltaX, deltaY);
+            const movementAdjustForZoom = movement.multiply({ x: 1 / this.getZoom(), y: 1 / this.getZoom() });
+            this.setViewportTransform(
+                util.multiplyTransformMatrices(this.viewportTransform, util.createTranslateMatrix(-movementAdjustForZoom.x, -movementAdjustForZoom.y))
+            )
+        }
         opt.e.preventDefault();
         opt.e.stopPropagation();
     }
@@ -160,15 +169,15 @@ export class CustomCanvas extends Canvas {
     handleDrag = (initialVp: TMat2D, pos: Point) => (opt: TPointerEventInfo<MouseEvent>) => {
 
         const newPoint = this.getPointFromEvent(opt.e);
-        const diff = newPoint.subtract(pos).multiply({x: 1 / this.getZoom(), y: 1 / this.getZoom()});
+        const diff = newPoint.subtract(pos).multiply({ x: 1 / this.getZoom(), y: 1 / this.getZoom() });
         this.setViewportTransform(
             util.multiplyTransformMatrices(initialVp, util.createTranslateMatrix(diff.x, diff.y))
         )
     }
 
 
-    getPointFromEvent(e: MouseEvent | TouchEvent){
-        if(e instanceof TouchEvent){
+    getPointFromEvent(e: MouseEvent | TouchEvent) {
+        if (e instanceof TouchEvent) {
             return new Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
         }
         return new Point(e.clientX, e.clientY)
