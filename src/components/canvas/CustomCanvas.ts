@@ -129,7 +129,7 @@ export class CustomCanvas extends Canvas {
             const [zoomX] = this.viewportTransform;
 
 
-            let targetZoom = zoomX * Math.pow(.99, deltaY);
+            let targetZoom = zoomX * Math.pow(.95, deltaY);
             if (targetZoom < 0.01) targetZoom = .01;
             if (targetZoom > 10) targetZoom = 10;
 
@@ -147,7 +147,7 @@ export class CustomCanvas extends Canvas {
             log('zoom')
         } else {
             const movement = new Point(deltaX, deltaY);
-            const movementAdjustForZoom = movement.multiply({ x: 1 / this.getZoom(), y: 1 / this.getZoom() });
+            const movementAdjustForZoom = movement.multiply({ x: 1 / (this.getZoom()/2), y: 1 / (this.getZoom()/2) });
             this.setViewportTransform(
                 util.multiplyTransformMatrices(this.viewportTransform, util.createTranslateMatrix(-movementAdjustForZoom.x, -movementAdjustForZoom.y))
             )
