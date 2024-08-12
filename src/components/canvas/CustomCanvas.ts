@@ -129,7 +129,7 @@ export class CustomCanvas extends Canvas {
             const [zoomX] = this.viewportTransform;
 
 
-            let targetZoom = zoomX * Math.pow(.95, deltaY);
+            let targetZoom = zoomX * Math.pow(.97, deltaY);
             if (targetZoom < 0.01) targetZoom = .01;
             if (targetZoom > 10) targetZoom = 10;
 

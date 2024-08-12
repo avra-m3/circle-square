@@ -30,7 +30,7 @@ export const CanvasPrimary: FC<SimpleProps> = ({ setCanvas, canvas: fabricCanvas
         }
     }, [canvasRef.current, containerRef.current])
 
-    return <div ref={containerRef} className="h-[calc(100vh-64px)] sm:w-full relative">
+    return <div ref={containerRef} className="h-[calc(100vh-64px)] w-full relative">
         <div className={"absolute"}>
             <canvas ref={canvasRef} className={"absolute"}>
             </canvas>
