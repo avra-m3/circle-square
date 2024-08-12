@@ -2,7 +2,7 @@
 import { Control, Controls, LinkingControl } from "@/components/navigation/controls";
 import { CanvasPrimary } from '@/components/canvas/CanvasPrimary';
 import { Topbar } from '@/components/navigation/topbar';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CustomCanvas } from '@/components/canvas/CustomCanvas';
 import {
     deleteShapeFromDb,
@@ -11,6 +11,7 @@ import {
     writeNewShapeToDb
 } from '@/components/firebase/database';
 import { CustomCircle } from '@/components/canvas/Shapes';
+import { CircleIcon, SquareIcon } from '@/components/icons';
 
 export default function Home() {
     const [canvas, setCanvas] = useState<CustomCanvas | null>(null)
@@ -23,7 +24,7 @@ export default function Home() {
         canvas.on('object:removed', ({ target }) => deleteShapeFromDb(target as CustomCircle))
 
         listenForUpdates((type, id, data) => {
-            console.log(type, id, data)
+            console.log(type, id)
             if (type === "delete") {
                 canvas.remove(canvas._objectsById[id])
                 return;
@@ -48,16 +49,16 @@ export default function Home() {
 
 
     const controls: (Control | LinkingControl)[] = [
-        { title: "Circle", onClick: () => canvas?.addCircle({}) },
-        { title: "Square", onClick: () => canvas?.addRect({}) },
-        { title: `zoom ${(zoom * 100).toFixed(0)}%` }
+        { icon: CircleIcon, onClick: () => canvas?.addCircle({}) },
+        { icon: SquareIcon, onClick: () => canvas?.addRect({}) },
+        { title: `${(zoom * 100).toFixed(0)}%` }
     ]
 
 
     return (
         <div className={"max-h-screen"}>
             <Topbar/>
-            <main className="grid grid-cols-1 sm:grid-cols-[125px_1fr] gap-0 bg-cyan-50">
+            <main className="grid grid-cols-[48px_1fr] gap-0 bg-gray-200">
                 <Controls controls={controls} show={false}/>
                 <CanvasPrimary canvas={canvas} setCanvas={setupCanvas}/>
             </main>
