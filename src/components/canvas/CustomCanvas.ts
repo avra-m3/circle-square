@@ -125,6 +125,7 @@ export class CustomCanvas extends Canvas {
     onZoom(opt: TPointerEventInfo<WheelEvent>) {
         let { deltaX, deltaY } = opt.e;
 
+        console.log('zoom', opt.e)
         if (opt.e.ctrlKey) {
             const [zoomX] = this.viewportTransform;
 
