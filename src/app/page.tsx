@@ -16,6 +16,9 @@ import { CircleIcon, SquareIcon } from '@/components/icons';
 export default function Home() {
     const [canvas, setCanvas] = useState<CustomCanvas | null>(null)
     const [zoom, setZoom] = useState<number>(1)
+    const [count, setCount] = useState<number>(1)
+
+
 
     const setupCanvas = async (canvas: CustomCanvas) => {
         setCanvas(canvas)
@@ -27,8 +30,10 @@ export default function Home() {
             console.log(type, id)
             if (type === "delete") {
                 canvas.remove(canvas._objectsById[id])
+                setCount(canvas?.getCountOnScreen());
                 return;
             }
+            setCount(canvas?.getCountOnScreen());
             canvas.addOrUpdateFromDb({ [id]: data })
         })
     }
@@ -43,7 +48,7 @@ export default function Home() {
 
     useEffect(() => {
         canvas?.on('mouse:wheel', () => {
-            setZoom(canvas?.getZoom())
+            setZoom(canvas?.getZoom());
         })
     }, [canvas])
 
@@ -51,7 +56,8 @@ export default function Home() {
     const controls: (Control | LinkingControl)[] = [
         { icon: CircleIcon, onClick: () => canvas?.addCircle({}) },
         { icon: SquareIcon, onClick: () => canvas?.addRect({}) },
-        { title: `${(zoom * 100).toFixed(0)}%` }
+        { title: `${(zoom * 100).toFixed(0)}%` },
+        { title: `${count}` }
     ]
 
 

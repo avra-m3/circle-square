@@ -50,15 +50,18 @@ export const updateShapeInDb = async (elem: CustomCircle | CustomRect) => {
 
 export const writeNewShapeToDb = async (elem: CustomCircle | CustomRect) => {
     // Avoid creating shapes that already exist.
-    if (elem.get('loaded')) {
+    if (elem.get('loaded') || !elem.get('id')) {
         return;
     }
     const rep = elem.toDbRep();
     await set(ref(connect(), 'objects/' + elem.get('id')), rep);
+    elem.set('loaded', true)
 }
 
 export const deleteShapeFromDb = async (elem: CustomCircle | CustomRect) => {
-    if (elem.get('id')) {
+    if (elem.get('id') && elem.get('final') !== false) {
+        console.log('sending delete to server')
         await remove(ref(connect(), 'objects/' + elem.get('id')));
+        elem.set('final', undefined);
     }
 }

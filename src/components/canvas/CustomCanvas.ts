@@ -1,4 +1,4 @@
-import { CustomCircle, CustomRect } from '@/components/canvas/Shapes';
+import {CustomCircle, CustomRect} from '@/components/canvas/Shapes';
 import {
     Canvas,
     CanvasOptions,
@@ -11,10 +11,11 @@ import {
     TPointerEventInfo,
     util
 } from 'fabric';
-import { log } from '@/components/firebase/logger';
+import {log} from '@/components/firebase/logger';
 
 export class CustomCanvas extends Canvas {
     _objectsById: Record<string, FabricObject>
+    _backgroundObjects: Group
 
     constructor(element: HTMLCanvasElement, options?: Partial<CanvasOptions>) {
         super(element, options);
@@ -22,10 +23,14 @@ export class CustomCanvas extends Canvas {
         const scaleH = 1000 / this.height;
 
         const scale = Math.min(scaleW, scaleH);
+        this._backgroundObjects = new Group([], {selectable: false, interactive: false, hoverCursor: "auto"});
         this._objectsById = {};
+
+        this.set('enableRetinaScaling', true);
 
         this.setViewportTransform([scale, 0, 0, scale, 0, 0])
         this.setupEvents();
+        this.add(this._backgroundObjects);
     }
 
     addOrUpdateFromDb(obj: Record<string, unknown>) {
@@ -33,34 +38,37 @@ export class CustomCanvas extends Canvas {
             return;
         }
         for (const id in obj) {
-            const { type, ...representation } = obj[id] as Partial<CircleProps | RectProps> & { type: string };
+            const {type, ...representation} = obj[id] as Partial<CircleProps | RectProps> & { type: string };
             const liveVersion = this._objectsById[id];
             if (type === "Circle") {
                 if (liveVersion) {
                     liveVersion.set(representation as {});
-                    this.requestRenderAll();
                 } else {
+                    const newShape = new CustomCircle({...(representation) as Partial<CircleProps>, id, loaded: true})
                     this.add(
-                        new CustomCircle({ ...(representation) as Partial<RectProps>, id, loaded: true })
+                        newShape
                     );
                 }
             } else if (type === "Rect") {
                 if (liveVersion) {
-                    liveVersion.set({ ...representation, id } as {});
-                    this.requestRenderAll();
+                    liveVersion.set({...representation, id} as {});
                 } else {
+                    const newShape = new CustomRect({...(representation) as Partial<RectProps>, id, loaded: true})
                     this.add(
-                        new CustomRect({ ...(representation) as Partial<RectProps>, id, loaded: true })
+                        newShape
                     );
                 }
             }
         }
+        this.requestRenderAll();
     }
 
     add(...objects: (FabricObject)[]) {
         for (const obj of objects) {
-            this._objectsById[obj.get('id')] = obj;
-            log(`${obj.type.toLowerCase()}_added` as 'circle_added')
+            if (obj.get('id') && !(obj instanceof Group)) {
+                this._objectsById[obj.get('id')] = obj;
+                log(`${obj.type.toLowerCase()}_added` as 'circle_added')
+            }
         }
 
         return super.add(...objects);
@@ -83,11 +91,13 @@ export class CustomCanvas extends Canvas {
         return colours[Math.floor(Math.random() * colours.length)];
     }
 
-    getRandomBounds({ width, height }: { width: number, height: number }) {
-        const { tl, br } = this.calcViewportBoundaries();
-        const left = tl.x + (Math.random() * (br.x - tl.x)) - width / 2
-        const top = tl.y + (Math.random() * (br.y - tl.y)) - height / 2
+    getRandomBounds() {
+        const {tl, br} = this.calcViewportBoundaries();
+        const size = (10 + Math.random() * 20) / this.getZoom();
+        const left = tl.x + (Math.random() * (br.x - tl.x)) - size / 2
+        const top = tl.y + (Math.random() * (br.y - tl.y)) - size / 2
         return {
+            size,
             left,
             top,
         }
@@ -105,27 +115,65 @@ export class CustomCanvas extends Canvas {
     }
 
     addCircle(options: Partial<CircleProps>) {
+        const {size, ...bounds} = this.getRandomBounds();
         const finalOptions = Object.assign({
             radius: 20,
-            fill: this.getRandomColor(), ...this.getRandomBounds({ width: 20, height: 20 })
+            scaleX: size / 20,
+            scaleY: size / 20,
+            fill: this.getRandomColor(), ...bounds
         }, options)
         return this.add(new CustomCircle(finalOptions));
     }
 
     addRect(options: Partial<RectProps>) {
+        const {size, ...bounds} = this.getRandomBounds();
         const finalOptions = Object.assign({
-            width: 40, height: 40, fill: this.getRandomColor(), ...this.getRandomBounds({
-                width: 40,
-                height: 40
-            })
+            width: 20, height: 20, scaleX: size / 20, scaleY: size / 20, fill: this.getRandomColor(), ...bounds
         }, options)
         return this.add(new CustomRect(finalOptions));
     }
 
-    onZoom(opt: TPointerEventInfo<WheelEvent>) {
-        let { deltaX, deltaY } = opt.e;
+    /**
+     * Fabric js will render objects much more efficiently in groups.
+     *
+     * We move objects into a group once it is too small to be seen, this should reduce
+     * the number of drawImage() calls that fabric js has to make when the screen moves.
+     */
+    shuffleObjects = () => {
+        console.log('shuffle')
+        const {x: gx, y: gy} = this._backgroundObjects.getTotalObjectScaling();
+        this._backgroundObjects.forEachObject(obj => {
+            const {x, y} = obj.getTotalObjectScaling()
+            if (obj.isOnScreen() && x * gx * obj.width > 20 || y * gy * obj.height > 20) {
+                this._backgroundObjects.remove(obj)
+                this.add(obj);
+                console.log('foreground', obj)
+            }
+        })
+        this.forEachObject(obj => {
+            if (obj === this._backgroundObjects || !obj.isOnScreen()) {
+                return
+            }
+            const {x, y} = obj.getTotalObjectScaling()
+            if (x * obj.width <= 10 || y * obj.height <= 10) {
+                this._backgroundObjects.add(obj);
+                obj.set('final', false)
+                this.remove(obj)
+                console.log('background', obj)
 
-        console.log('zoom', opt.e)
+            }
+        })
+
+    }
+
+    setViewportTransform(vpt: TMat2D) {
+        super.setViewportTransform(vpt);
+        this.shuffleObjects();
+    }
+
+    onZoom(opt: TPointerEventInfo<WheelEvent>) {
+        let {deltaX, deltaY} = opt.e;
+
         if (opt.e.ctrlKey) {
             const [zoomX] = this.viewportTransform;
 
@@ -148,7 +196,7 @@ export class CustomCanvas extends Canvas {
             log('zoom')
         } else {
             const movement = new Point(deltaX, deltaY);
-            const movementAdjustForZoom = movement.multiply({ x: 1 / (this.getZoom()/2), y: 1 / (this.getZoom()/2) });
+            const movementAdjustForZoom = movement.multiply({x: 1 / (this.getZoom() / 2), y: 1 / (this.getZoom() / 2)});
             this.setViewportTransform(
                 util.multiplyTransformMatrices(this.viewportTransform, util.createTranslateMatrix(-movementAdjustForZoom.x, -movementAdjustForZoom.y))
             )
@@ -163,14 +211,16 @@ export class CustomCanvas extends Canvas {
             const handler = this.handleDrag(this.viewportTransform, this.getPointFromEvent(opt.e));
             log('pan')
             this.on('mouse:move', handler);
-            this.once('mouse:up', () => this.off('mouse:move', handler));
+            this.once('mouse:up', () => {
+                this.off('mouse:move', handler)
+            });
         }
     }
 
     handleDrag = (initialVp: TMat2D, pos: Point) => (opt: TPointerEventInfo<MouseEvent>) => {
 
         const newPoint = this.getPointFromEvent(opt.e);
-        const diff = newPoint.subtract(pos).multiply({ x: 1 / this.getZoom(), y: 1 / this.getZoom() });
+        const diff = newPoint.subtract(pos).multiply({x: 1 / this.getZoom(), y: 1 / this.getZoom()});
         this.setViewportTransform(
             util.multiplyTransformMatrices(initialVp, util.createTranslateMatrix(diff.x, diff.y))
         )
@@ -178,10 +228,10 @@ export class CustomCanvas extends Canvas {
 
 
     getPointFromEvent(e: MouseEvent | TouchEvent) {
-        if (e instanceof TouchEvent) {
+        if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) {
             return new Point(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
         }
-        return new Point(e.clientX, e.clientY)
+        return new Point((e as MouseEvent).clientX, (e as MouseEvent).clientY)
     }
 
     onDelete() {
@@ -193,5 +243,9 @@ export class CustomCanvas extends Canvas {
             }
             this.discardActiveObject();
         }
+    }
+
+    getCountOnScreen() {
+        return Object.values(this._objectsById).length
     }
 }
